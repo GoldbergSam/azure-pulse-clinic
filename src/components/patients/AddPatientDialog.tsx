@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -49,6 +48,14 @@ const AddPatientDialog = ({ open, onOpenChange }: AddPatientDialogProps) => {
   const onSubmit = (data: PatientFormValues) => {
     addPatient({
       ...data,
+      name: data.name,
+      age: data.age,
+      gender: data.gender,
+      mrn: data.mrn,
+      reason: data.reason,
+      priority: data.priority,
+      time: data.time,
+      doctor: data.doctor,
       vitals: {
         bp: '120/80',
         hr: 72,

@@ -6,129 +6,66 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Plus, Filter } from 'lucide-react';
 import PatientCard from '@/components/dashboard/PatientCard';
-
-// Mock data for patients
-const mockPatientsData = [
-  {
-    id: 1,
-    name: "James Wilson",
-    age: 45,
-    gender: "Male",
-    mrn: "MRN123456",
-    reason: "Chest pain",
-    priority: "urgent" as const,
-    time: "08:30 AM",
-    doctor: "Carter",
-    vitals: {
-      bp: "150/95",
-      hr: 95,
-      temp: 99.1,
-      spo2: 94
-    },
-    vitalsData: [
-      { time: '08:30', heartRate: 95, bloodPressureSystolic: 150, bloodPressureDiastolic: 95, temperature: 99.1, spO2: 94 },
-      { time: '09:30', heartRate: 92, bloodPressureSystolic: 145, bloodPressureDiastolic: 92, temperature: 99.0, spO2: 95 },
-      { time: '10:30', heartRate: 90, bloodPressureSystolic: 140, bloodPressureDiastolic: 90, temperature: 98.8, spO2: 96 },
-      { time: '11:30', heartRate: 88, bloodPressureSystolic: 138, bloodPressureDiastolic: 88, temperature: 98.6, spO2: 97 },
-    ]
-  },
-  {
-    id: 2,
-    name: "Emily Rodriguez",
-    age: 32,
-    gender: "Female",
-    mrn: "MRN789012",
-    reason: "Migraine",
-    priority: "high" as const,
-    time: "09:15 AM",
-    doctor: "Davis",
-    vitals: {
-      bp: "125/82",
-      hr: 78,
-      temp: 98.6,
-      spo2: 98
-    },
-    vitalsData: [
-      { time: '09:15', heartRate: 78, bloodPressureSystolic: 125, bloodPressureDiastolic: 82, temperature: 98.6, spO2: 98 },
-      { time: '10:15', heartRate: 76, bloodPressureSystolic: 124, bloodPressureDiastolic: 80, temperature: 98.5, spO2: 98 },
-      { time: '11:15', heartRate: 75, bloodPressureSystolic: 123, bloodPressureDiastolic: 79, temperature: 98.5, spO2: 99 },
-    ]
-  },
-  {
-    id: 3,
-    name: "Robert Kim",
-    age: 65,
-    gender: "Male",
-    mrn: "MRN345678",
-    reason: "Follow-up",
-    priority: "normal" as const,
-    time: "09:45 AM",
-    doctor: "Jones",
-    vitals: {
-      bp: "140/85",
-      hr: 72,
-      temp: 98.2,
-      spo2: 97
-    },
-    vitalsData: [
-      { time: '09:45', heartRate: 72, bloodPressureSystolic: 140, bloodPressureDiastolic: 85, temperature: 98.2, spO2: 97 },
-      { time: '10:45', heartRate: 70, bloodPressureSystolic: 138, bloodPressureDiastolic: 83, temperature: 98.0, spO2: 97 },
-      { time: '11:45', heartRate: 71, bloodPressureSystolic: 139, bloodPressureDiastolic: 84, temperature: 98.1, spO2: 98 },
-    ]
-  },
-  {
-    id: 4,
-    name: "Maria Garcia",
-    age: 28,
-    gender: "Female",
-    mrn: "MRN901234",
-    reason: "Pregnancy check",
-    priority: "normal" as const,
-    time: "10:30 AM",
-    doctor: "Smith",
-    vitals: {
-      bp: "118/75",
-      hr: 80,
-      temp: 98.4,
-      spo2: 99
-    },
-    vitalsData: [
-      { time: '10:30', heartRate: 80, bloodPressureSystolic: 118, bloodPressureDiastolic: 75, temperature: 98.4, spO2: 99 },
-      { time: '11:30', heartRate: 82, bloodPressureSystolic: 120, bloodPressureDiastolic: 78, temperature: 98.6, spO2: 99 },
-      { time: '12:30', heartRate: 81, bloodPressureSystolic: 119, bloodPressureDiastolic: 76, temperature: 98.5, spO2: 99 },
-    ]
-  },
-  {
-    id: 5,
-    name: "George Brown",
-    age: 72,
-    gender: "Male",
-    mrn: "MRN567890",
-    reason: "Diabetes check",
-    priority: "low" as const,
-    time: "11:00 AM",
-    doctor: "Wilson",
-    vitals: {
-      bp: "135/82",
-      hr: 68,
-      temp: 97.9,
-      spo2: 96
-    },
-    vitalsData: [
-      { time: '11:00', heartRate: 68, bloodPressureSystolic: 135, bloodPressureDiastolic: 82, temperature: 97.9, spO2: 96 },
-      { time: '12:00', heartRate: 67, bloodPressureSystolic: 134, bloodPressureDiastolic: 80, temperature: 97.8, spO2: 96 },
-      { time: '13:00', heartRate: 69, bloodPressureSystolic: 136, bloodPressureDiastolic: 83, temperature: 98.0, spO2: 97 },
-    ]
-  },
-];
+import { usePatients } from '@/hooks/usePatients';
+import { useToast } from "@/components/ui/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import AddPatientDialog from '@/components/patients/AddPatientDialog';
 
 const PatientsPage = () => {
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
+  const { patients, isLoading, error } = usePatients();
+  const { toast } = useToast();
 
-  const filteredPatients = mockPatientsData.filter(patient => 
+  if (error) {
+    toast({
+      title: "Error loading patients",
+      description: "There was a problem loading the patient data.",
+      variant: "destructive",
+    });
+  }
+
+  const filteredPatients = patients.filter(patient => 
     patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     patient.mrn.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const renderSkeletons = () => (
+    <>
+      {Array(5).fill(0).map((_, index) => (
+        <TableRow key={index}>
+          <TableCell><Skeleton className="h-10 w-full" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-32" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-32" /></TableCell>
+        </TableRow>
+      ))}
+    </>
+  );
+
+  const renderCardSkeletons = () => (
+    <>
+      {Array(6).fill(0).map((_, index) => (
+        <div key={index} className="card-patient">
+          <Skeleton className="h-10 w-full mb-2" />
+          <Skeleton className="h-6 w-3/4 mb-2" />
+          <Skeleton className="h-6 w-1/2 mb-2" />
+          <div className="grid grid-cols-4 gap-2 mt-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="mt-3 flex justify-end">
+            <Skeleton className="h-8 w-24" />
+          </div>
+        </div>
+      ))}
+    </>
   );
 
   return (
@@ -139,7 +76,7 @@ const PatientsPage = () => {
             <h1 className="text-2xl font-bold">Patients</h1>
             <p className="text-muted-foreground">Manage your patient records</p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setIsAddPatientOpen(true)}>
             <Plus size={16} />
             Add Patient
           </Button>
@@ -197,55 +134,82 @@ const PatientsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPatients.map((patient) => (
-                    <TableRow key={patient.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{patient.name}</p>
-                          <p className="text-sm text-muted-foreground">{patient.age} yrs • {patient.gender}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{patient.mrn}</TableCell>
-                      <TableCell>{patient.reason}</TableCell>
-                      <TableCell>
-                        <div className={`badge-priority inline-block priority-${patient.priority}`}>
-                          {patient.priority.charAt(0).toUpperCase() + patient.priority.slice(1)}
-                        </div>
-                      </TableCell>
-                      <TableCell>{patient.time}</TableCell>
-                      <TableCell>Dr. {patient.doctor}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2 items-center">
-                          <span className="text-xs">{patient.vitals.bp}</span>
-                          <span className="text-xs">{patient.vitals.hr} BPM</span>
-                        </div>
+                  {isLoading ? (
+                    renderSkeletons()
+                  ) : filteredPatients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                        {searchQuery ? 'No patients match your search' : 'No patients found'}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredPatients.map((patient) => (
+                      <TableRow key={patient.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{patient.name}</p>
+                            <p className="text-sm text-muted-foreground">{patient.age} yrs • {patient.gender}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{patient.mrn}</TableCell>
+                        <TableCell>{patient.reason}</TableCell>
+                        <TableCell>
+                          <div className={`badge-priority inline-block priority-${patient.priority}`}>
+                            {patient.priority.charAt(0).toUpperCase() + patient.priority.slice(1)}
+                          </div>
+                        </TableCell>
+                        <TableCell>{patient.time}</TableCell>
+                        <TableCell>{patient.doctor ? `Dr. ${patient.doctor}` : '-'}</TableCell>
+                        <TableCell>
+                          {patient.vitals ? (
+                            <div className="flex gap-2 items-center">
+                              {patient.vitals.bp && <span className="text-xs">{patient.vitals.bp}</span>}
+                              {patient.vitals.hr && <span className="text-xs">{patient.vitals.hr} BPM</span>}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No data</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredPatients.map((patient) => (
-                <PatientCard
-                  key={patient.id}
-                  name={patient.name}
-                  age={patient.age}
-                  gender={patient.gender}
-                  mrn={patient.mrn}
-                  reason={patient.reason}
-                  priority={patient.priority}
-                  time={patient.time}
-                  doctor={patient.doctor}
-                  vitals={patient.vitals}
-                  vitalsData={patient.vitalsData}
-                />
-              ))}
+              {isLoading ? (
+                renderCardSkeletons()
+              ) : filteredPatients.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-muted-foreground">
+                  {searchQuery ? 'No patients match your search' : 'No patients found'}
+                </div>
+              ) : (
+                filteredPatients.map((patient) => (
+                  <PatientCard
+                    key={patient.id}
+                    name={patient.name}
+                    age={patient.age}
+                    gender={patient.gender}
+                    mrn={patient.mrn}
+                    reason={patient.reason}
+                    priority={patient.priority}
+                    time={patient.time}
+                    doctor={patient.doctor}
+                    vitals={patient.vitals}
+                    vitalsData={patient.vitalsData}
+                  />
+                ))
+              )}
             </div>
           )}
         </div>
       </div>
+      
+      <AddPatientDialog 
+        open={isAddPatientOpen} 
+        onOpenChange={setIsAddPatientOpen} 
+      />
     </MainLayout>
   );
 };

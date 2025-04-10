@@ -10,40 +10,64 @@ import {
   ResponsiveContainer, 
   Legend 
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-interface VitalsDataPoint {
-  time: string;
-  heartRate?: number;
-  bloodPressureSystolic?: number;
-  bloodPressureDiastolic?: number;
-  temperature?: number;
-  spO2?: number;
-}
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { VitalsDataPoint } from '@/types/patient';
 
 interface VitalsChartProps {
   data: VitalsDataPoint[];
   title: string;
+  subtitle?: string;
   showBloodPressure?: boolean;
   showHeartRate?: boolean;
   showTemperature?: boolean;
   showSpO2?: boolean;
   className?: string;
+  patientId?: number;
+  onPatientChange?: (patientId: number) => void;
+  patients?: Array<{ id: number; name: string }>;
 }
 
 const VitalsChart = ({
   data,
   title,
+  subtitle,
   showBloodPressure = true,
   showHeartRate = true,
   showTemperature = true,
   showSpO2 = true,
-  className
+  className,
+  patientId,
+  onPatientChange,
+  patients = []
 }: VitalsChartProps) => {
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-md font-medium">{title}</CardTitle>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-md font-medium">{title}</CardTitle>
+            {subtitle && <CardDescription>{subtitle}</CardDescription>}
+          </div>
+          
+          {patients.length > 0 && onPatientChange && (
+            <Select 
+              value={patientId?.toString()} 
+              onValueChange={(value) => onPatientChange(parseInt(value))}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Patient" />
+              </SelectTrigger>
+              <SelectContent>
+                {patients.map((patient) => (
+                  <SelectItem key={patient.id} value={patient.id.toString()}>
+                    {patient.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="w-full h-[240px]">

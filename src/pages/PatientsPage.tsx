@@ -10,6 +10,7 @@ import { usePatients } from '@/hooks/usePatients';
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import AddPatientDialog from '@/components/patients/AddPatientDialog';
+import SeedDataButton from '@/components/patients/SeedDataButton';
 
 const PatientsPage = () => {
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
@@ -76,10 +77,13 @@ const PatientsPage = () => {
             <h1 className="text-2xl font-bold">Patients</h1>
             <p className="text-muted-foreground">Manage your patient records</p>
           </div>
-          <Button className="gap-2" onClick={() => setIsAddPatientOpen(true)}>
-            <Plus size={16} />
-            Add Patient
-          </Button>
+          <div className="flex gap-2">
+            <SeedDataButton />
+            <Button className="gap-2" onClick={() => setIsAddPatientOpen(true)}>
+              <Plus size={16} />
+              Add Patient
+            </Button>
+          </div>
         </div>
         
         <div className="flex flex-col gap-4">

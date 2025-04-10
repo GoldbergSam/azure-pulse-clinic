@@ -1,9 +1,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Get Supabase URL and anon key from the environment
 // When connected through the Lovable integration, these values are automatically provided
-const supabaseUrl = 'https://your-supabase-project.supabase.co';
-const supabaseAnonKey = 'your-supabase-anon-key';
+// in the environment. You can find these values in your Supabase dashboard.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Anon Key length:', supabaseAnonKey ? supabaseAnonKey.length : 0);
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

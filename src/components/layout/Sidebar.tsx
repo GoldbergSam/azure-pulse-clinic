@@ -52,7 +52,7 @@ const Sidebar = () => {
   return (
     <div className="h-screen w-64 bg-sidebar fixed left-0 top-0 border-r border-border flex flex-col">
       <div className="p-4 border-b border-border">
-        <h1 className="font-bold text-xl text-primary">Pulse EMR</h1>
+        <h1 className="font-bold text-xl text-primary">Encode MR</h1>
       </div>
       <nav className="flex-1 overflow-y-auto p-4">
         <ul className="space-y-2">

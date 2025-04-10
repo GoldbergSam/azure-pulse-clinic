@@ -25,7 +25,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   supabase = {
     from: (table) => ({
       select: (columns) => ({
-        order: (column, { ascending } = {}) => ({
+        order: (column, options = {}) => ({
           eq: (field, value) => ({
             single: () => {
               const item = mockDb[table]?.find(record => record[field] === value);
@@ -41,7 +41,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
             const sortedData = [...(mockDb[table] || [])];
             if (column && sortedData.length > 0) {
               sortedData.sort((a, b) => {
-                if (ascending) {
+                if (options.ascending) {
                   return a[column] > b[column] ? 1 : -1;
                 } else {
                   return a[column] < b[column] ? 1 : -1;

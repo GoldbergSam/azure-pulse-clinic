@@ -25,7 +25,7 @@ const SeedDataButton = () => {
       console.error('Error seeding data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to seed patient data. Check console for details.',
+        description: 'Failed to seed patient data. Please check console for details.',
         variant: 'destructive',
       });
     } finally {
@@ -42,7 +42,7 @@ const SeedDataButton = () => {
       disabled={isSeeding}
     >
       <Database size={16} />
-      {isSeeding ? 'Adding Samples...' : 'Seed Sample Data'}
+      {isSeeding ? 'Adding Samples...' : 'Reset Sample Data'}
     </Button>
   );
 };

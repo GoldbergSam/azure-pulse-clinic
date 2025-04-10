@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Stethoscope, Users, Clock, Activity, Heartbeat, Bell, CheckSquare, Smartphone } from 'lucide-react';
+import { Stethoscope, Users, Clock, Activity, Heart, Bell, CheckSquare, Smartphone, AlertCircle } from 'lucide-react';
 import StatCard from '@/components/dashboard/StatCard';
 import PatientCard from '@/components/dashboard/PatientCard';
 import TriageAlert from '@/components/dashboard/TriageAlert';
@@ -230,7 +229,7 @@ const Dashboard = () => {
                     <div className="flex flex-col gap-1 bg-background p-3 rounded-lg border border-border">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Heart Rate Monitor</span>
-                        <Heartbeat size={16} className="text-emr-urgent" />
+                        <Heart size={16} className="text-emr-urgent" />
                       </div>
                       <span className="text-2xl font-bold">72 BPM</span>
                       <span className="text-xs text-muted-foreground">Updated 2 mins ago</span>

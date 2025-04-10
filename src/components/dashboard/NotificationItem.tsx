@@ -2,7 +2,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { AlertCircle, Bell, Heartbeat, Smartphone, CheckCircle } from 'lucide-react';
+import { AlertCircle, Bell, Heart, Smartphone, CheckCircle } from 'lucide-react';
 
 type NotificationType = 'iot' | 'triage' | 'followup' | 'system';
 

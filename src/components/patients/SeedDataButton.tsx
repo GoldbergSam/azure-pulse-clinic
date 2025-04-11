@@ -30,9 +30,15 @@ const SeedDataButton = () => {
       });
     } catch (error: any) {
       console.error('Error seeding data:', error);
+      
+      let errorMessage = error?.message || 'Unknown error';
+      if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+        errorMessage = 'Tables not found. Please verify that you have created the "patients" and "vitals_data" tables in Supabase.';
+      }
+      
       toast({
         title: 'Error',
-        description: `Failed to seed patient data: ${error?.message || 'Unknown error'}`,
+        description: `Failed to seed patient data: ${errorMessage}`,
         variant: 'destructive',
         duration: 10000,
       });

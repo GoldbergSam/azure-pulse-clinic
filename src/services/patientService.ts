@@ -3,28 +3,7 @@ import { Patient, Vitals, VitalsDataPoint } from '@/types/patient';
 
 export const fetchPatients = async (): Promise<Patient[]> => {
   try {
-    // Try to create the patients table if it doesn't exist first
-    try {
-      await supabase.rpc('execute_sql', {
-        sql_query: `
-          CREATE TABLE IF NOT EXISTS patients (
-            id BIGSERIAL PRIMARY KEY,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            name TEXT NOT NULL,
-            age INTEGER,
-            gender TEXT,
-            mrn TEXT,
-            reason TEXT,
-            priority TEXT,
-            time TEXT,
-            doctor TEXT,
-            vitals JSONB
-          );
-        `
-      });
-    } catch (err) {
-      console.log('Auto-create table attempt:', err);
-    }
+    console.log('Fetching patients...');
     
     const { data, error } = await supabase
       .from('patients')
@@ -36,6 +15,7 @@ export const fetchPatients = async (): Promise<Patient[]> => {
       throw error;
     }
     
+    console.log('Successfully fetched patients:', data?.length || 0);
     return data || [];
   } catch (error) {
     console.error('Error in fetchPatients:', error);
@@ -70,7 +50,6 @@ export const fetchVitalsData = async (patientId: number): Promise<VitalsDataPoin
     throw error;
   }
   
-  // Transform the raw data to match the expected format
   return (data || []).map(raw => ({
     time: new Date(raw.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     heartRate: raw.heart_rate,
@@ -114,42 +93,10 @@ export const seedPatientData = async (): Promise<void> => {
   try {
     console.log('Starting to seed patient data...');
     
-    // First, ensure tables exist
-    try {
-      await supabase.rpc('execute_sql', {
-        sql_query: `
-          CREATE TABLE IF NOT EXISTS patients (
-            id BIGSERIAL PRIMARY KEY,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            name TEXT NOT NULL,
-            age INTEGER,
-            gender TEXT,
-            mrn TEXT,
-            reason TEXT,
-            priority TEXT,
-            time TEXT,
-            doctor TEXT,
-            vitals JSONB
-          );
-          
-          CREATE TABLE IF NOT EXISTS vitals_data (
-            id BIGSERIAL PRIMARY KEY,
-            patient_id BIGINT REFERENCES patients(id),
-            time TIMESTAMP WITH TIME ZONE,
-            heart_rate INTEGER,
-            blood_pressure_systolic INTEGER,
-            blood_pressure_diastolic INTEGER,
-            temperature FLOAT,
-            spo2 INTEGER
-          );
-        `
-      });
-      console.log('Tables created/verified successfully');
-    } catch (tableError) {
-      console.log('Error in table creation, continuing anyway:', tableError);
-    }
+    // Verify tables exist first
+    await verifyTablesExist();
     
-    // Then, clear existing data - use more robust approach
+    // Then, clear existing data
     await clearExistingData();
     
     // Then, add sample patients
@@ -160,6 +107,33 @@ export const seedPatientData = async (): Promise<void> => {
     console.error('Error seeding patient data:', error);
     throw error;
   }
+};
+
+// Helper function to verify tables exist
+const verifyTablesExist = async () => {
+  console.log('Verifying tables exist...');
+  
+  // Check if patients table exists
+  const { data: patientData, error: patientError } = await supabase
+    .from('patients')
+    .select('id')
+    .limit(1);
+    
+  if (patientError && patientError.code === '42P01') {
+    throw new Error('The "patients" table does not exist in your Supabase database. Please create it first.');
+  }
+  
+  // Check if vitals_data table exists
+  const { data: vitalsData, error: vitalsError } = await supabase
+    .from('vitals_data')
+    .select('id')
+    .limit(1);
+    
+  if (vitalsError && vitalsError.code === '42P01') {
+    throw new Error('The "vitals_data" table does not exist in your Supabase database. Please create it first.');
+  }
+  
+  console.log('Tables verified successfully');
 };
 
 // Helper function to clear existing data with better error handling

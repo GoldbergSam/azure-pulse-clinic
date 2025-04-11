@@ -1,18 +1,24 @@
+
 import { supabase } from '@/lib/supabase';
 import { Patient, Vitals, VitalsDataPoint } from '@/types/patient';
 
 export const fetchPatients = async (): Promise<Patient[]> => {
-  const { data, error } = await supabase
-    .from('patients')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching patients:', error);
+    if (error) {
+      console.error('Error fetching patients:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchPatients:', error);
     throw error;
   }
-  
-  return data || [];
 };
 
 export const fetchPatientById = async (id: number): Promise<Patient | null> => {
@@ -42,7 +48,15 @@ export const fetchVitalsData = async (patientId: number): Promise<VitalsDataPoin
     throw error;
   }
   
-  return data || [];
+  // Transform the raw data to match the expected format
+  return (data || []).map(raw => ({
+    time: new Date(raw.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    heartRate: raw.heart_rate,
+    bloodPressureSystolic: raw.blood_pressure_systolic,
+    bloodPressureDiastolic: raw.blood_pressure_diastolic,
+    temperature: raw.temperature,
+    spO2: raw.spo2
+  }));
 };
 
 export const addPatient = async (patient: Omit<Patient, 'id' | 'created_at'>): Promise<Patient> => {
@@ -75,28 +89,50 @@ export const updatePatient = async (id: number, updates: Partial<Patient>): Prom
 };
 
 export const seedPatientData = async (): Promise<void> => {
-  const generateVitalsData = (patientId: number): any[] => {
-    const vitalsData = [];
-    const now = new Date();
+  try {
+    // First, clear existing data
+    await clearExistingData();
     
-    for (let i = 0; i < 6; i++) {
-      const time = new Date(now);
-      time.setHours(time.getHours() - (5 - i) * 2);
-      
-      vitalsData.push({
-        patient_id: patientId,
-        time: time.toISOString(),
-        heart_rate: 70 + Math.floor(Math.random() * 15),
-        blood_pressure_systolic: 115 + Math.floor(Math.random() * 20),
-        blood_pressure_diastolic: 75 + Math.floor(Math.random() * 15),
-        temperature: 98.4 + Math.random() * 1.2,
-        spo2: 95 + Math.floor(Math.random() * 5),
-      });
+    // Then, add sample patients
+    await addSamplePatients();
+    
+    console.log('Sample patient data has been seeded successfully!');
+  } catch (error) {
+    console.error('Error seeding patient data:', error);
+    throw error;
+  }
+};
+
+// Helper function to clear existing data
+const clearExistingData = async () => {
+  try {
+    // Delete all vitals data first (due to foreign key constraints)
+    const { error: vitalsError } = await supabase
+      .from('vitals_data')
+      .delete()
+      .neq('id', 0); // Delete all records
+    
+    if (vitalsError) {
+      console.error('Error clearing vitals data:', vitalsError);
     }
     
-    return vitalsData;
-  };
+    // Then delete all patients
+    const { error: patientsError } = await supabase
+      .from('patients')
+      .delete()
+      .neq('id', 0); // Delete all records
+    
+    if (patientsError) {
+      console.error('Error clearing patients data:', patientsError);
+    }
+  } catch (error) {
+    console.error('Error in clearExistingData:', error);
+    throw error;
+  }
+};
 
+// Helper function to add sample patients and their vitals data
+const addSamplePatients = async () => {
   const patients = [
     {
       name: 'Sarah Johnson',
@@ -121,7 +157,7 @@ export const seedPatientData = async (): Promise<void> => {
       mrn: 'MRN10043',
       reason: 'Chest pain',
       priority: 'urgent',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date(Date.now() - 15 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       doctor: 'Garcia',
       vitals: {
         bp: '145/92',
@@ -137,7 +173,7 @@ export const seedPatientData = async (): Promise<void> => {
       mrn: 'MRN10044',
       reason: 'Fever and rash',
       priority: 'normal',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date(Date.now() - 45 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       doctor: 'Thompson',
       vitals: {
         bp: '95/60',
@@ -153,7 +189,7 @@ export const seedPatientData = async (): Promise<void> => {
       mrn: 'MRN10045',
       reason: 'Difficulty breathing',
       priority: 'high',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date(Date.now() - 120 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       doctor: 'Patel',
       vitals: {
         bp: '152/88',
@@ -169,7 +205,7 @@ export const seedPatientData = async (): Promise<void> => {
       mrn: 'MRN10046',
       reason: 'Back pain',
       priority: 'normal',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date(Date.now() - 180 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       doctor: 'Kim',
       vitals: {
         bp: '125/80',
@@ -177,100 +213,12 @@ export const seedPatientData = async (): Promise<void> => {
         temp: 98.4,
         spo2: 99
       }
-    },
-    {
-      name: 'Maria Garcia',
-      age: 55,
-      gender: 'Female',
-      mrn: 'MRN10047',
-      reason: 'Diabetic check',
-      priority: 'low',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      doctor: 'Johnson',
-      vitals: {
-        bp: '138/85',
-        hr: 75,
-        temp: 98.2,
-        spo2: 97
-      }
-    },
-    {
-      name: 'James Smith',
-      age: 28,
-      gender: 'Male',
-      mrn: 'MRN10048',
-      reason: 'Sprained ankle',
-      priority: 'normal',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      doctor: 'Davis',
-      vitals: {
-        bp: '120/78',
-        hr: 74,
-        temp: 98.6,
-        spo2: 98
-      }
-    },
-    {
-      name: 'Ava Thomas',
-      age: 4,
-      gender: 'Female',
-      mrn: 'MRN10049',
-      reason: 'Ear infection',
-      priority: 'high',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      doctor: 'Wilson',
-      vitals: {
-        bp: '90/55',
-        hr: 115,
-        temp: 100.2,
-        spo2: 97
-      }
-    },
-    {
-      name: 'William Baker',
-      age: 62,
-      gender: 'Male',
-      mrn: 'MRN10050',
-      reason: 'Medication review',
-      priority: 'low',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      doctor: 'Brown',
-      vitals: {
-        bp: '135/82',
-        hr: 70,
-        temp: 98.0,
-        spo2: 96
-      }
-    },
-    {
-      name: 'Sophia Lee',
-      age: 31,
-      gender: 'Female',
-      mrn: 'MRN10051',
-      reason: 'Pregnancy check',
-      priority: 'normal',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      doctor: 'Martinez',
-      vitals: {
-        bp: '118/75',
-        hr: 80,
-        temp: 98.8,
-        spo2: 99
-      }
     }
   ];
 
-  try {
-    const { count } = await supabase
-      .from('patients')
-      .select('*', { count: 'exact', head: true });
-    
-    if (count && count > 0) {
-      console.log('Database already has patients, skipping seed.');
-      return;
-    }
-
-    for (const patient of patients) {
+  for (const patient of patients) {
+    try {
+      // Insert patient
       const { data, error } = await supabase
         .from('patients')
         .insert([patient])
@@ -283,21 +231,43 @@ export const seedPatientData = async (): Promise<void> => {
 
       if (data && data[0]) {
         const patientId = data[0].id;
-        const vitalsData = generateVitalsData(patientId);
-
-        const { error: vitalsError } = await supabase
-          .from('vitals_data')
-          .insert(vitalsData);
-
-        if (vitalsError) {
-          console.error(`Error adding vitals data for patient ${patientId}:`, vitalsError);
-        }
+        
+        // Generate vitals data for this patient
+        await addVitalsDataForPatient(patientId);
       }
+    } catch (error) {
+      console.error('Error adding a patient:', error);
     }
+  }
+};
 
-    console.log('Sample patient data has been seeded successfully!');
-  } catch (error) {
-    console.error('Error seeding patient data:', error);
-    throw error;
+// Helper function to add vitals data for a patient
+const addVitalsDataForPatient = async (patientId: number) => {
+  const vitalsData = [];
+  const now = new Date();
+  
+  // Create 6 vitals readings over the past 12 hours
+  for (let i = 0; i < 6; i++) {
+    const time = new Date(now);
+    time.setHours(time.getHours() - (5 - i) * 2);
+    
+    vitalsData.push({
+      patient_id: patientId,
+      time: time.toISOString(),
+      heart_rate: 70 + Math.floor(Math.random() * 15),
+      blood_pressure_systolic: 115 + Math.floor(Math.random() * 20),
+      blood_pressure_diastolic: 75 + Math.floor(Math.random() * 15),
+      temperature: 98.4 + Math.random() * 1.2,
+      spo2: 95 + Math.floor(Math.random() * 5),
+    });
+  }
+  
+  // Insert all vitals data for this patient
+  const { error } = await supabase
+    .from('vitals_data')
+    .insert(vitalsData);
+
+  if (error) {
+    console.error(`Error adding vitals data for patient ${patientId}:`, error);
   }
 };

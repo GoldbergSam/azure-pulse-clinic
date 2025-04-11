@@ -25,7 +25,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   supabase = {
     from: (table) => ({
       select: (columns) => ({
-        order: (column, options = {}) => ({
+        order: (column, options: { ascending?: boolean } = {}) => ({
           eq: (field, value) => ({
             single: () => {
               const item = mockDb[table]?.find(record => record[field] === value);

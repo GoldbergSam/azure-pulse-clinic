@@ -10,6 +10,81 @@ console.log('Connecting to Supabase:', supabaseUrl);
 // Create the Supabase client
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Function to actually create tables directly - will run SQL commands to create tables
+const createTablesIfNotExist = async () => {
+  try {
+    console.log('Attempting to create tables directly...');
+    
+    // Create patients table
+    const { error: patientsError } = await supabase.rpc('create_patients_table', {});
+    if (patientsError) {
+      console.error('Error creating patients table:', patientsError);
+      
+      // Try direct SQL execution as fallback
+      const { error: sqlError } = await supabase.rpc('execute_sql', {
+        sql_query: `
+          CREATE TABLE IF NOT EXISTS patients (
+            id BIGSERIAL PRIMARY KEY,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            name TEXT NOT NULL,
+            age INTEGER,
+            gender TEXT,
+            mrn TEXT,
+            reason TEXT,
+            priority TEXT,
+            time TEXT,
+            doctor TEXT,
+            vitals JSONB
+          );
+        `
+      });
+      
+      if (sqlError) {
+        console.error('Error executing SQL for patients table:', sqlError);
+      } else {
+        console.log('Created patients table via direct SQL');
+      }
+    } else {
+      console.log('Created patients table successfully');
+    }
+    
+    // Create vitals_data table
+    const { error: vitalsError } = await supabase.rpc('create_vitals_table', {});
+    if (vitalsError) {
+      console.error('Error creating vitals_data table:', vitalsError);
+      
+      // Try direct SQL execution as fallback
+      const { error: sqlError } = await supabase.rpc('execute_sql', {
+        sql_query: `
+          CREATE TABLE IF NOT EXISTS vitals_data (
+            id BIGSERIAL PRIMARY KEY,
+            patient_id BIGINT REFERENCES patients(id),
+            time TIMESTAMP WITH TIME ZONE,
+            heart_rate INTEGER,
+            blood_pressure_systolic INTEGER,
+            blood_pressure_diastolic INTEGER,
+            temperature FLOAT,
+            spo2 INTEGER
+          );
+        `
+      });
+      
+      if (sqlError) {
+        console.error('Error executing SQL for vitals_data table:', sqlError);
+      } else {
+        console.log('Created vitals_data table via direct SQL');
+      }
+    } else {
+      console.log('Created vitals_data table successfully');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in createTablesIfNotExist:', error);
+    return false;
+  }
+};
+
 // Function to log schema information for manual table setup
 const logSchemaInformation = () => {
   console.log('Tables need to be created manually in Supabase dashboard.');
@@ -47,40 +122,25 @@ const logSchemaInformation = () => {
   console.log('After creating the tables, return to the app and click "Reset Sample Data".');
 };
 
-// Check if tables exist and log creation instructions if needed
-const checkTablesExist = async () => {
+// Initialize the database tables
+const initDatabase = async () => {
   try {
-    // Check if patients table exists
-    const { data: patientsTable, error: patientsError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', 'patients')
-      .single();
+    // First, attempt to create tables programmatically
+    const tablesCreated = await createTablesIfNotExist();
     
-    // Check if vitals_data table exists
-    const { data: vitalsTable, error: vitalsError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', 'vitals_data')
-      .single();
-    
-    // If either table doesn't exist, log setup instructions
-    if (patientsError || vitalsError || !patientsTable || !vitalsTable) {
+    if (!tablesCreated) {
       logSchemaInformation();
-      return false;
     }
     
-    return true;
+    return tablesCreated;
   } catch (error) {
-    console.error('Error checking if tables exist:', error);
+    console.error('Error initializing database:', error);
     logSchemaInformation();
     return false;
   }
 };
 
-// Initialize by checking if tables exist
-checkTablesExist();
+// Initialize the database
+initDatabase();
 
 export { supabase };

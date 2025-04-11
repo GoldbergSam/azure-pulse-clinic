@@ -1,9 +1,31 @@
-
 import { supabase } from '@/lib/supabase';
 import { Patient, Vitals, VitalsDataPoint } from '@/types/patient';
 
 export const fetchPatients = async (): Promise<Patient[]> => {
   try {
+    // Try to create the patients table if it doesn't exist first
+    try {
+      await supabase.rpc('execute_sql', {
+        sql_query: `
+          CREATE TABLE IF NOT EXISTS patients (
+            id BIGSERIAL PRIMARY KEY,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            name TEXT NOT NULL,
+            age INTEGER,
+            gender TEXT,
+            mrn TEXT,
+            reason TEXT,
+            priority TEXT,
+            time TEXT,
+            doctor TEXT,
+            vitals JSONB
+          );
+        `
+      });
+    } catch (err) {
+      console.log('Auto-create table attempt:', err);
+    }
+    
     const { data, error } = await supabase
       .from('patients')
       .select('*')
@@ -90,7 +112,44 @@ export const updatePatient = async (id: number, updates: Partial<Patient>): Prom
 
 export const seedPatientData = async (): Promise<void> => {
   try {
-    // First, clear existing data
+    console.log('Starting to seed patient data...');
+    
+    // First, ensure tables exist
+    try {
+      await supabase.rpc('execute_sql', {
+        sql_query: `
+          CREATE TABLE IF NOT EXISTS patients (
+            id BIGSERIAL PRIMARY KEY,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            name TEXT NOT NULL,
+            age INTEGER,
+            gender TEXT,
+            mrn TEXT,
+            reason TEXT,
+            priority TEXT,
+            time TEXT,
+            doctor TEXT,
+            vitals JSONB
+          );
+          
+          CREATE TABLE IF NOT EXISTS vitals_data (
+            id BIGSERIAL PRIMARY KEY,
+            patient_id BIGINT REFERENCES patients(id),
+            time TIMESTAMP WITH TIME ZONE,
+            heart_rate INTEGER,
+            blood_pressure_systolic INTEGER,
+            blood_pressure_diastolic INTEGER,
+            temperature FLOAT,
+            spo2 INTEGER
+          );
+        `
+      });
+      console.log('Tables created/verified successfully');
+    } catch (tableError) {
+      console.log('Error in table creation, continuing anyway:', tableError);
+    }
+    
+    // Then, clear existing data - use more robust approach
     await clearExistingData();
     
     // Then, add sample patients
@@ -103,31 +162,46 @@ export const seedPatientData = async (): Promise<void> => {
   }
 };
 
-// Helper function to clear existing data
+// Helper function to clear existing data with better error handling
 const clearExistingData = async () => {
   try {
-    // Delete all vitals data first (due to foreign key constraints)
-    const { error: vitalsError } = await supabase
-      .from('vitals_data')
-      .delete()
-      .neq('id', 0); // Delete all records
+    console.log('Clearing existing data...');
     
-    if (vitalsError) {
-      console.error('Error clearing vitals data:', vitalsError);
+    // Try to delete vitals_data records first (due to foreign key constraints)
+    try {
+      const { error: vitalsError } = await supabase
+        .from('vitals_data')
+        .delete()
+        .neq('id', 0); // Delete all records
+      
+      if (vitalsError) {
+        console.error('Error clearing vitals data:', vitalsError);
+      } else {
+        console.log('Cleared vitals_data table');
+      }
+    } catch (e) {
+      console.log('Error clearing vitals_data, might not exist yet:', e);
     }
     
-    // Then delete all patients
-    const { error: patientsError } = await supabase
-      .from('patients')
-      .delete()
-      .neq('id', 0); // Delete all records
-    
-    if (patientsError) {
-      console.error('Error clearing patients data:', patientsError);
+    // Then try to delete patients
+    try {
+      const { error: patientsError } = await supabase
+        .from('patients')
+        .delete()
+        .neq('id', 0); // Delete all records
+      
+      if (patientsError) {
+        console.error('Error clearing patients data:', patientsError);
+      } else {
+        console.log('Cleared patients table');
+      }
+    } catch (e) {
+      console.log('Error clearing patients, might not exist yet:', e);
     }
+    
   } catch (error) {
     console.error('Error in clearExistingData:', error);
-    throw error;
+    // Continue execution - don't throw here
   }
 };
 

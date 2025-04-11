@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,13 +18,15 @@ const PatientsPage = () => {
   const { patients, isLoading, error } = usePatients();
   const { toast } = useToast();
 
-  if (error) {
-    toast({
-      title: "Error loading patients",
-      description: "There was a problem loading the patient data.",
-      variant: "destructive",
-    });
-  }
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading patients",
+        description: "There was a problem loading the patient data.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   const filteredPatients = patients.filter(patient => 
     patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

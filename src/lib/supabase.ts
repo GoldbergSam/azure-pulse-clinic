@@ -13,22 +13,15 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Create tables if they don't exist
 const createTablesIfNotExist = async () => {
   try {
-    // Check if tables exist first
-    const { data: patientTableExists } = await supabase
-      .from('patients')
-      .select('id')
-      .limit(1);
+    // Try to create patients table using SQL
+    const { error: patientsError } = await supabase.rpc('create_patients_table', {}, {
+      head: true, // Only get the status
+      count: 'exact'
+    });
     
-    const { data: vitalsTableExists } = await supabase
-      .from('vitals_data')
-      .select('id')
-      .limit(1);
-
-    // For more complex operations like creating tables, we would typically use
-    // Supabase migrations or the dashboard directly, as the JS client doesn't support
-    // DDL operations.
-    
-    if (patientTableExists === null) {
+    // If function doesn't exist, we need to create it first
+    if (patientsError && patientsError.message.includes('does not exist')) {
+      console.log('RPC function not found. Will attempt to create tables from dashboard.');
       console.log('Tables need to be created manually in Supabase dashboard.');
       console.log('Schema for patients table:');
       console.log(`
@@ -56,6 +49,31 @@ const createTablesIfNotExist = async () => {
         - temperature: float8
         - spo2: int4
       `);
+      
+      // Create temporary function to check if table exists
+      const tableExists = async (tableName: string) => {
+        const { data, error } = await supabase
+          .from('information_schema.tables')
+          .select('table_name')
+          .eq('table_schema', 'public')
+          .eq('table_name', tableName);
+          
+        if (error) {
+          console.error(`Error checking if ${tableName} exists:`, error);
+          return false;
+        }
+        
+        return data && data.length > 0;
+      };
+      
+      // Check if we have the ability to create tables
+      const patientsExists = await tableExists('patients');
+      const vitalsExists = await tableExists('vitals_data');
+      
+      if (!patientsExists || !vitalsExists) {
+        console.log('Please use the Supabase dashboard to create the tables with the schema above.');
+        console.log('After creating the tables, return to the app and click "Reset Sample Data".');
+      }
     }
   } catch (error) {
     console.error('Error checking tables:', error);

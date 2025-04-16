@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchPatients, fetchPatientById, addPatient, updatePatient, fetchVitalsData } from '@/services/patientService';
 import { Patient } from '@/types/patient';
 import { toast } from '@/components/ui/use-toast';
+import { useEffect } from 'react';
 
 export const usePatients = () => {
   const queryClient = useQueryClient();
@@ -11,20 +12,22 @@ export const usePatients = () => {
     queryKey: ['patients'],
     queryFn: fetchPatients,
     retry: 1,
-    meta: {
-      onError: (error: any) => {
-        let errorMessage = error?.message || 'Unknown error';
-        if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
-          toast({
-            title: 'Database Setup Required',
-            description: 'Please create the "patients" and "vitals_data" tables in your Supabase dashboard, then try again.',
-            variant: 'destructive',
-            duration: 10000,
-          });
-        }
+  });
+
+  // Use useEffect to show toast when an error occurs
+  useEffect(() => {
+    if (error) {
+      let errorMessage = (error as Error)?.message || 'Unknown error';
+      if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+        toast({
+          title: 'Database Setup Required',
+          description: 'Please create the "patients" and "vitals_data" tables in your Supabase dashboard, then try again.',
+          variant: 'destructive',
+          duration: 10000,
+        });
       }
     }
-  });
+  }, [error]); // Only run when error changes
 
   const addPatientMutation = useMutation({
     mutationFn: addPatient,
@@ -61,19 +64,6 @@ export const usePatients = () => {
       });
     }
   });
-
-  // Add a useEffect to show toast when an error occurs
-  if (error) {
-    let errorMessage = (error as Error)?.message || 'Unknown error';
-    if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
-      toast({
-        title: 'Database Setup Required',
-        description: 'Please create the "patients" and "vitals_data" tables in your Supabase dashboard, then try again.',
-        variant: 'destructive',
-        duration: 10000,
-      });
-    }
-  }
 
   return {
     patients: patients || [],

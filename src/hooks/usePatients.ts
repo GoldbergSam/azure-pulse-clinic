@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchPatients, fetchPatientById, addPatient, updatePatient, fetchVitalsData } from '@/services/patientService';
 import { Patient } from '@/types/patient';
@@ -10,15 +11,17 @@ export const usePatients = () => {
     queryKey: ['patients'],
     queryFn: fetchPatients,
     retry: 1,
-    onError: (error: any) => {
-      let errorMessage = error?.message || 'Unknown error';
-      if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
-        toast({
-          title: 'Database Setup Required',
-          description: 'Please create the "patients" and "vitals_data" tables in your Supabase dashboard, then try again.',
-          variant: 'destructive',
-          duration: 10000,
-        });
+    onSettled: (data, error: any) => {
+      if (error) {
+        let errorMessage = error?.message || 'Unknown error';
+        if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+          toast({
+            title: 'Database Setup Required',
+            description: 'Please create the "patients" and "vitals_data" tables in your Supabase dashboard, then try again.',
+            variant: 'destructive',
+            duration: 10000,
+          });
+        }
       }
     }
   });

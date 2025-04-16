@@ -11,8 +11,8 @@ export const usePatients = () => {
     queryKey: ['patients'],
     queryFn: fetchPatients,
     retry: 1,
-    onSettled: (data, error: any) => {
-      if (error) {
+    meta: {
+      onError: (error: any) => {
         let errorMessage = error?.message || 'Unknown error';
         if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
           toast({
@@ -61,6 +61,19 @@ export const usePatients = () => {
       });
     }
   });
+
+  // Add a useEffect to show toast when an error occurs
+  if (error) {
+    let errorMessage = (error as Error)?.message || 'Unknown error';
+    if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+      toast({
+        title: 'Database Setup Required',
+        description: 'Please create the "patients" and "vitals_data" tables in your Supabase dashboard, then try again.',
+        variant: 'destructive',
+        duration: 10000,
+      });
+    }
+  }
 
   return {
     patients: patients || [],
